@@ -1,4 +1,4 @@
-# Users API — Auth Endpoints (Industry-style) 🔐
+# Users API — Auth Endpoints 🔐
 
 A concise, developer-friendly reference for authentication-related endpoints under `backend/`.
 
