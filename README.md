@@ -137,6 +137,56 @@ Responses:
 
 ---
 
+### Captains — POST /captains/register
+
+- Method: POST
+- Path: `/captains/register`
+- Auth: No
+- Description: Create a new captain account (drivers). The captain model includes vehicle details and optional location/status fields.
+
+Request:
+- Headers: `Content-Type: application/json`
+- Body schema:
+  - `fullName.firstName` (string, required, min 3)
+  - `fullName.lastName` (string, optional)
+  - `email` (string, required, email, **unique**)
+  - `password` (string, required, min 6)
+  - `vehical.color` (string, required)
+  - `vehical.plateNo` (string, required, min 3)
+  - `vehical.capacity` (number, required, min 1)
+  - `vehical.vehicalType` (enum: `auto|bike|activa|car`, required)
+  - `location` (object with `lat`, `lng` — optional)
+  - `status` (optional, enum: `available|unavailable|on-trip`)
+
+Responses:
+- 201 Created — returns `{ captain, token }` (password excluded)
+- 400 Bad Request — missing fields or already registered `{ message: "Captain is already registered" }`
+- 422 Unprocessable Entity — validation errors `{ errors: [ ... ] }`
+- 500 Internal Server Error — `{ message: "Internal Server Error" }`
+
+Example success response:
+
+```json
+{
+  "captain": {
+    "_id": "60f7a1c3e2b5a02d5c4d2f9b",
+    "fullName": { "firstName": "John", "lastName": "Smith" },
+    "email": "john.smith@example.com",
+    "vehical": { "color": "white", "plateNo": "ABC123", "capacity": 4, "vehicalType": "car" },
+    "socketId": null,
+    "status": null,
+    "__v": 0
+  },
+  "token": "<JWT_TOKEN_HERE>"
+}
+```
+
+Notes:
+- The `email` field in `captain.Model.js` has `unique: true` and a regex `match` validator.
+- Passwords are hashed using `captainModel.hashPassword` before saving.
+- The instance method is named `comaprePassword` (typo) — consider renaming to `comparePassword` for consistency.
+
+
 ## Token blacklist (short)
 
 - Purpose: Blacklist stores tokens that should not be accepted even if they are otherwise valid (e.g., after logout).

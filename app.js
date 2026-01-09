@@ -4,6 +4,7 @@ const express = require('express');
 const app = express();
 const cors = require('cors');
 const userRoutes = require('./routes/user.routes');
+const captainRoutes = require('./routes/captain.routes');
 const cookieParser = require('cookie-parser');
 
 app.use(cors());
@@ -16,5 +17,6 @@ app.get('/',(req,res)=>{
     res.send("Hello world");
 })
 app.use('/users',userRoutes);
+app.use('/captains',captainRoutes);
 
 module.exports = app;

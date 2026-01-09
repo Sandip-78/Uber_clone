@@ -16,6 +16,11 @@ const registerUser = async (req,res,next) => {
         return res.status(400).json({message: 'All fields are required.'});
     }
 
+    const isExsist = await userModel.findOne({email});
+        if(isExsist) {
+            return res.status(400).json({message : "user is already registered"});
+        } 
+
     const hashedPassword = await userModel.hashPassword(password);
 
     const user = await userModel.create({
@@ -55,6 +60,7 @@ const loginUser = async (req,res,next) => {
     }
 
     const token = user.generateAuthToken();
+    res.cookie('token', token);
 
     res.status(200).json({user, token});
 }
