@@ -1,6 +1,6 @@
-# Users API — Auth Endpoints 🔐
+# Backend API — Authentication 🔐
 
-A concise, developer-friendly reference for authentication-related endpoints under `backend/`.
+A concise, developer-facing reference for authentication and captain (driver) endpoints.
 
 ---
 
@@ -9,183 +9,144 @@ A concise, developer-friendly reference for authentication-related endpoints und
 - [Overview](#overview)
 - [Authentication](#authentication)
 - [Endpoints](#endpoints)
-  - [Register — POST /users/register](#register---post-usersregister)
-  - [Login — POST /users/login](#login---post-userslogin)
-  - [Profile — GET /users/profile](#profile---get-usersprofile)
-  - [Logout — GET /users/logout](#logout---get-userslogout)
+  - [Users](#users)
+    - [Register — POST /users/register](#register----post-usersregister)
+    - [Login — POST /users/login](#login----post-userslogin)
+    - [Profile — GET /users/profile](#profile----get-usersprofile)
+    - [Logout — GET /users/logout](#logout----get-userslogout)
+  - [Captains](#captains)
+    - [Register — POST /captains/register](#register----post-captainsregister)
+    - [Login — POST /captains/login](#login----post-captainslogin)
+    - [Profile — GET /captains/profile](#profile----get-captainsprofile)
+    - [Logout — GET /captains/logout](#logout----get-captainslogout)
 - [Token blacklist (short)](#token-blacklist-short)
-- [Implementation notes](#implementation-notes)
+- [Implementation notes & TODOs](#implementation-notes--todos)
 - [Examples](#examples)
 
 ---
 
 ## Overview
 
-This document covers the user authentication endpoints implemented in the project. Each endpoint is documented with: Method, Path, Authentication requirement, Request/Response examples, and possible status codes.
+This document describes the authentication flows for Users and Captains in the backend. It lists method, path, auth requirements, request/response examples, and common errors.
 
 ---
 
 ## Authentication
 
-- JWTs are used for authentication. Tokens are issued on successful login/register and should be sent as:
-  - `Authorization: Bearer <token>` header OR
-  - `token` cookie (the code supports clearing this cookie on logout)
-- Keep the environment variable `JWT_SECRET_KEY` set for signing tokens.
+- JWTs are used for authentication.
+- Tokens can be sent as:
+  - `Authorization: Bearer <token>` header
+  - `token` cookie (login endpoints set a cookie)
+- Environment: set `JWT_SECRET_KEY` for signing tokens.
+- Note: token lifetimes differ by model (see notes below).
 
 ---
 
 ## Endpoints
 
-### Register — POST /users/register
+## Users
 
+### Register — POST /users/register
 - Method: POST
 - Path: `/users/register`
 - Auth: No
-- Description: Create a new user account. Passwords are hashed before persisting.
+- Description: Create a new user account. Passwords are hashed before storage.
 
-Request:
+Request
 - Headers: `Content-Type: application/json`
-- Body schema:
+- Body:
   - `fullName.firstName` (string, required, min 3)
   - `fullName.lastName` (string, optional)
   - `email` (string, required, email)
   - `password` (string, required, min 6)
 
-Responses:
-- 201 Created — returns `{ user, token }` (password excluded)
-- 400 Bad Request — missing fields `{ message: "All fields are required." }`
-- 422 Unprocessable Entity — validation errors `{ errors: [ ... ] }`
-- 500 Internal Server Error — `{ message: "Internal Server Error" }`
+Responses
+- 201 Created — `{ user, token }` (password excluded)
+- 400 Bad Request — `{ message: "All fields are required." }`
+- 422 Unprocessable Entity — `{ errors: [...] }`
+- 500 Internal Server Error
 
-Example success response:
-
-```json
-{
-  "user": {
-    "_id": "60f7a0b7c2a2b84f394a1cd4",
-    "fullName": { "firstName": "Jane", "lastName": "Doe" },
-    "email": "jane.doe@example.com",
-    "socketId": null,
-    "__v": 0
-  },
-  "token": "<JWT_TOKEN_HERE>"
-}
-```
+Notes
+- User tokens expire in 24 hours (see `user_model.generateAuthToken`).
 
 ---
 
 ### Login — POST /users/login
-
 - Method: POST
 - Path: `/users/login`
 - Auth: No
-- Description: Authenticate a user and return `{ user, token }`.
+- Description: Authenticate a user; returns `{ user, token }` and sets a cookie.
 
-Request:
+Request
 - Headers: `Content-Type: application/json`
-- Body schema:
-  - `email` (string, required, email)
-  - `password` (string, required)
+- Body: `{ email, password }`
 
-Responses:
+Responses
 - 200 OK — `{ user, token }`
 - 400 Bad Request — invalid credentials `{ message: "Invalid email or password." }`
 - 422 Unprocessable Entity — validation errors
 - 500 Internal Server Error
 
-Example success response: see Register success example above (same shape).
-
 ---
 
 ### Profile — GET /users/profile
-
 - Method: GET
 - Path: `/users/profile`
 - Auth: Yes (JWT)
-- Description: Returns the authenticated user's profile (`req.user` is attached by `authMiddleware`).
+- Description: Returns the authenticated user's profile (attached as `req.user`).
 
-Responses:
+Responses
 - 200 OK — `{ user }`
-- 401 Unauthorized — missing/invalid token `{ message: "Access denied. No token provided." }`
-
-Example response:
-
-```json
-{
-  "user": {
-    "_id": "60f7a0b7c2a2b84f394a1cd4",
-    "fullName": { "firstName": "Jane", "lastName": "Doe" },
-    "email": "jane.doe@example.com",
-    "socketId": null,
-    "__v": 0
-  }
-}
-```
+- 401 Unauthorized — `{ message: "Access denied. No token provided." }`
 
 ---
 
 ### Logout — GET /users/logout
-
 - Method: GET
 - Path: `/users/logout`
 - Auth: Yes (JWT)
-- Description: Logs out the user, clears the token cookie (if set), and stores the token in the blacklist so it cannot be reused.
+- Description: Clears auth cookie and blacklists the token.
 
-Responses:
+Responses
 - 200 OK — `{ message: "Logged out successfully" }`
 - 401 Unauthorized — `{ message: "Access denied. No token provided." }`
 
 ---
 
-### Captains — POST /captains/register
+## Captains
 
+### Register — POST /captains/register
 - Method: POST
 - Path: `/captains/register`
 - Auth: No
-- Description: Create a new captain account (drivers). The captain model includes vehicle details and optional location/status fields.
+- Description: Create a captain (driver) account. Includes vehicle details.
 
-Request:
+Request
 - Headers: `Content-Type: application/json`
-- Body schema:
+- Body:
   - `fullName.firstName` (string, required, min 3)
   - `fullName.lastName` (string, optional)
-  - `email` (string, required, email, **unique**)
+  - `email` (string, required, email, unique)
   - `password` (string, required, min 6)
   - `vehical.color` (string, required)
   - `vehical.plateNo` (string, required, min 3)
   - `vehical.capacity` (number, required, min 1)
   - `vehical.vehicalType` (enum: `auto|bike|activa|car`, required)
-  - `location` (object with `lat`, `lng` — optional)
-  - `status` (optional, enum: `available|unavailable|on-trip`)
+  - `location` (optional; `{ lat, lng }`)
+  - `status` (optional; enum `available|unavailable|on-trip`)
 
-Responses:
-- 201 Created — returns `{ captain, token }` (password excluded)
-- 400 Bad Request — missing fields or already registered `{ message: "Captain is already registered" }`
-- 422 Unprocessable Entity — validation errors `{ errors: [ ... ] }`
-- 500 Internal Server Error — `{ message: "Internal Server Error" }`
+Responses
+- 201 Created — `{ captain, token }` (password excluded)
+- 400 Bad Request — missing fields / already registered
+- 422 Unprocessable Entity — `{ errors: [...] }`
+- 500 Internal Server Error
 
-Example success response:
+Notes
+- Captain tokens expire in 7 days (see `captain.Model.generateAuthToken`).
+- `email` has `unique: true` and a regex validator in `captain.Model.js`.
+- There is a typo in the model method name `comaprePassword` — consider renaming to `comparePassword`.
 
-```json
-{
-  "captain": {
-    "_id": "60f7a1c3e2b5a02d5c4d2f9b",
-    "fullName": { "firstName": "John", "lastName": "Smith" },
-    "email": "john.smith@example.com",
-    "vehical": { "color": "white", "plateNo": "ABC123", "capacity": 4, "vehicalType": "car" },
-    "socketId": null,
-    "status": null,
-    "__v": 0
-  },
-  "token": "<JWT_TOKEN_HERE>"
-}
-```
-
-Notes:
-- The `email` field in `captain.Model.js` has `unique: true` and a regex `match` validator.
-- Passwords are hashed using `captainModel.hashPassword` before saving.
-- The instance method is named `comaprePassword` (typo) — consider renaming to `comparePassword` for consistency.
-
+---
 
 ## Token blacklist (short)
 
@@ -206,37 +167,6 @@ Notes:
 
 ---
 
-## Examples
-
-Register (curl):
-
-```bash
-curl -X POST http://localhost:3000/users/register \
-  -H "Content-Type: application/json" \
-  -d '{"fullName":{"firstName":"Jane","lastName":"Doe"},"email":"jane.doe@example.com","password":"secret123"}'
-```
-
-Login (curl):
-
-```bash
-curl -X POST http://localhost:3000/users/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"jane.doe@example.com","password":"secret123"}'
-```
-
-Profile (curl with header):
-
-```bash
-curl -H "Authorization: Bearer <JWT_TOKEN>" http://localhost:3000/users/profile
-```
-
-Logout (curl with header):
-
-```bash
-curl -H "Authorization: Bearer <JWT_TOKEN>" http://localhost:3000/users/logout
-```
-
----
 
 
 ## Users API — GET /users/profile ✅

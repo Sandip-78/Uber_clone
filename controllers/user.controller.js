@@ -2,7 +2,6 @@ const blackListModel = require('../models/blackListModel');
 const userModel = require('../models/user_model');
 const {validationResult} = require('express-validator');
 
-
 const registerUser = async (req,res,next) => {
 
     const errors = validationResult(req);
