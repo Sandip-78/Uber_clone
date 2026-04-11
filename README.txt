@@ -73,3 +73,9 @@ Login	Token allowed
 Logout	Token saved in blacklist
 Use token again	❌ Blocked
 Token expires	Blacklist entry removed
+
+now get the frontend file from github use this
+git pull origin sanju(branch name where you take code)
+now merge the branch so we use 
+Merge branch 'sanju' with main
+git push 
